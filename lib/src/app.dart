@@ -1,5 +1,8 @@
+import 'package:exibe_imagens/src/widgets/image_list.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'dart:convert';
+import './models/image_model.dart';
 
 class App extends StatefulWidget {
   State<App> createState() {
@@ -8,9 +11,11 @@ class App extends StatefulWidget {
 }
 
 class AppState extends State<App> {
-  int numeroImagens = 0;
+  int numeroImagens = 1;
+  List<ImageModel> imagens = [];
 
-  void obterImagem() {
+  //async/await
+  void obterImagem() async {
     //https://api.pexels.com/v1/search?query=people
     var url = Uri.https(
       'api.pexels.com',
@@ -18,7 +23,7 @@ class AppState extends State<App> {
       {
         'query': 'people',
         'per_page': '1',
-        'page': '1',
+        'page': '$numeroImagens',
       },
     );
     var req = http.Request('get', url);
@@ -26,11 +31,14 @@ class AppState extends State<App> {
       'Authorization':
           '563492ad6f91700001000001e00b21ab6afb45a18c1d44a759556f14',
     });
-    //IO-Bound (input/output)
-    req.send().then((result) {
-      http.Response.fromStream(result).then((response) {
-        print(response.body);
-      });
+    final result = await req.send();
+    final response = await http.Response.fromStream(result);
+    //pegar o JSON(string), converter para Map e converter para a classe de Modelo (ImageModel)
+    final decodedJSON = json.decode(response.body);
+    final imagem = ImageModel.fromJSON(decodedJSON);
+    setState(() {
+      imagens.add(imagem);
+      numeroImagens++;
     });
   }
 
@@ -38,7 +46,7 @@ class AppState extends State<App> {
   Widget build(BuildContext context) {
     return MaterialApp(
       home: Scaffold(
-        body: Text('$numeroImagens'),
+        body: ImageList(imagens),
         appBar: AppBar(title: const Text("Minhas Imagens")),
         floatingActionButton: FloatingActionButton(
           child: const Icon(Icons.add),
